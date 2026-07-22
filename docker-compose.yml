@@ -1,0 +1,20 @@
+services:
+  addigy-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: addigy-mcp:latest
+    container_name: addigy-mcp-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - MCP_HTTP_PORT=8080
+      - ADDIGY_BASE_URL=https://api.addigy.com
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

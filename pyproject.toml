@@ -1,0 +1,22 @@
+[project]
+name = "addigy-mcp"
+version = "0.1.0"
+description = "MCP server for Addigy V2 (Devices, Monitoring Alerts, Policies, Installed Apps via Agent/MDM)"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]>=1.9.0",
+    "httpx>=0.27.0",
+    "pydantic-settings>=2.3.0",
+    "uvicorn>=0.30.0",
+    "starlette>=0.41.0",
+]
+
+[project.scripts]
+addigy-mcp = "addigy_mcp.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/addigy_mcp"]
