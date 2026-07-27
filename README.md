@@ -62,7 +62,7 @@ Missing the header returns `401 Unauthorized`.
 |---|---|---|
 | `MCP_HTTP_PORT` | `8080` | Listening port |
 | `MCP_HTTP_HOST` | `0.0.0.0` | Listening host |
-| `ADDIGY_BASE_URL` | `https://api.addigy.com` | Addigy API base URL |
+| `ADDIGY_BASE_URL` | `https://api.addigy.com/api/v2` | Addigy API base URL |
 
 ## MCP Endpoint
 

@@ -44,7 +44,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 ENV MCP_HTTP_PORT=8080
 ENV MCP_HTTP_HOST=0.0.0.0
-ENV ADDIGY_BASE_URL=https://api.addigy.com
+ENV ADDIGY_BASE_URL=https://api.addigy.com/api/v2
 
 USER addigy
 

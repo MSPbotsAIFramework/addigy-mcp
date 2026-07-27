@@ -37,7 +37,7 @@ class AddigyClient:
     async def _request(
         self, method: str, path: str, params: dict | None = None, json_body: Any = None
     ) -> Any:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             try:
                 resp = await client.request(
                     method,

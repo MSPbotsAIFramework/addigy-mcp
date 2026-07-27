@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     mcp_http_port: int = 8080
     mcp_http_host: str = "0.0.0.0"
-    addigy_base_url: str = "https://api.addigy.com"
+    addigy_base_url: str = "https://api.addigy.com/api/v2"
 
 
 def get_settings() -> Settings:
