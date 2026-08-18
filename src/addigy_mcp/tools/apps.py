@@ -56,8 +56,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         devices enrolled only through MDM (no Addigy agent installed), use
         addigy_query_installed_apps_mdm instead — the two report from
         different data sources and cover different device populations.
-
-        API: POST /oa/installed-apps/agent/query
         """
         client = client_factory()
         if client is None:
@@ -123,8 +121,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         without the native Addigy agent installed). For devices that do have
         the Addigy agent, addigy_query_installed_apps_agent is the source
         Addigy itself considers authoritative.
-
-        API: POST /oa/installed-apps/mdm/query
         """
         client = client_factory()
         if client is None:

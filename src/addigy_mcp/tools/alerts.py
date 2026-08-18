@@ -49,8 +49,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         Use this for questions like "what alerts fired recently" or "any open
         alerts for this org" — Addigy's monitoring/compliance notifications,
         not device inventory (use addigy_query_devices for that).
-
-        API: GET /monitoring/received-alerts
         """
         client = client_factory()
         if client is None:

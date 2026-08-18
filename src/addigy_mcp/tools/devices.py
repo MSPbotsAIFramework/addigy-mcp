@@ -62,8 +62,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         Use this for questions about a customer's Mac/iOS fleet — device
         inventory, model/OS breakdowns, which devices are on a given policy,
         or a free-text lookup by serial number/hostname.
-
-        API: POST /devices
         """
         client = client_factory()
         if client is None:

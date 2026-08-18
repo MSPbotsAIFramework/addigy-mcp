@@ -44,8 +44,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         Use this to look up policy names/IDs — e.g. before calling
         addigy_query_devices with a policy_id filter, or to answer "what
         policies exist for this org".
-
-        API: POST /oa/policies/query
         """
         client = client_factory()
         if client is None:
