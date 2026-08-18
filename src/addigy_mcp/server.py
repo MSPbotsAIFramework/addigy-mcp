@@ -76,6 +76,19 @@ def create_mcp_server(settings: Settings) -> FastMCP:
     # correctly behind a reverse proxy or docker network.
     mcp = FastMCP(
         name="addigy-mcp",
+        instructions=(
+            "Addigy is a macOS/iOS device management (MDM) platform MSPs use to "
+            "manage clients' Apple device fleets — enrollment, policy enforcement, "
+            "monitoring, and software inventory. Use this server for: device "
+            "inventory/fleet questions (addigy_query_devices), monitoring/compliance "
+            "alerts (addigy_get_alerts), policy lookups (addigy_query_policies), and "
+            "installed-app inventory split by enrollment method — native agent "
+            "(addigy_query_installed_apps_agent) vs MDM-only "
+            "(addigy_query_installed_apps_mdm). All 5 tools are read-only queries; "
+            "there are no write/delete tools in this service. Typical flow: "
+            "addigy_query_policies to find a policy ID, then "
+            "addigy_query_devices(policy_id=...) to see which devices are on it."
+        ),
         transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     )
 

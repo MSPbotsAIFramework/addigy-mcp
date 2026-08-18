@@ -1,17 +1,20 @@
-import json
 from collections.abc import Callable
 from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from .._json import dump_json_capped
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
+
+_MAX_PER_PAGE = 200
 
 
 def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) -> None:
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     async def addigy_get_alerts(
         page: Annotated[
             str, Field(description="Required page number (as a string, per the vendor API).")
@@ -19,7 +22,10 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         per_page: Annotated[
             str,
             Field(
-                description="Required results per page (as a string, per the vendor API)."
+                description=(
+                    "Required results per page (as a string, per the vendor API, "
+                    "capped at 200)."
+                )
             ),
         ],
         status: Annotated[
@@ -49,9 +55,15 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         client = client_factory()
         if client is None:
             return NO_TOKEN
+        try:
+            per_page_int = int(per_page)
+        except ValueError:
+            per_page_int = None
+        if per_page_int is not None and per_page_int > _MAX_PER_PAGE:
+            per_page = str(_MAX_PER_PAGE)
         params = {"page": page, "per_page": per_page, "status": status}
         try:
             result = await client.get("/monitoring/received-alerts", params=params)
-            return json.dumps(result, indent=2)
+            return dump_json_capped(result)
         except AddigyError as e:
-            return f"Error: {e}"
+            return e.to_envelope()

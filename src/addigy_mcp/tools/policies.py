@@ -1,17 +1,18 @@
-import json
 from collections.abc import Callable
 from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from .._json import dump_json_capped
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
 
 
 def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) -> None:
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     async def addigy_query_policies(
         policies: Annotated[
             list[str] | None,
@@ -53,6 +54,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         params = {"multitenancy": multitenancy, "child-organizations": child_organizations}
         try:
             result = await client.post("/oa/policies/query", json_body=body, params=params)
-            return json.dumps(result, indent=2)
+            return dump_json_capped(result)
         except AddigyError as e:
-            return f"Error: {e}"
+            return e.to_envelope()

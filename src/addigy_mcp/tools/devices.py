@@ -1,21 +1,24 @@
-import json
 from collections.abc import Callable
 from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from .._json import dump_json_capped
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
+
+_MAX_PER_PAGE = 200
 
 
 def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) -> None:
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     async def addigy_query_devices(
         page: Annotated[int | None, Field(description="Page number (default 1).")] = None,
         per_page: Annotated[
-            int | None, Field(description="Results per page (default 10).")
+            int | None, Field(description="Results per page (default 10, max 200).")
         ] = None,
         search_any: Annotated[
             str | None, Field(description="Free-text search across devices.")
@@ -65,6 +68,8 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         client = client_factory()
         if client is None:
             return NO_TOKEN
+        if per_page is not None:
+            per_page = min(per_page, _MAX_PER_PAGE)
         query: dict = {}
         if search_any is not None:
             query["search_any"] = search_any
@@ -84,6 +89,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         body = {k: v for k, v in body.items() if v is not None}
         try:
             result = await client.post("/devices", json_body=body)
-            return json.dumps(result, indent=2)
+            return dump_json_capped(result)
         except AddigyError as e:
-            return f"Error: {e}"
+            return e.to_envelope()

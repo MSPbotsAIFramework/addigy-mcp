@@ -1,17 +1,21 @@
-import json
 from collections.abc import Callable
 from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
+from .._json import dump_json_capped
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
+
+_MAX_PER_PAGE = 100
+_MAX_LIMIT = 200
 
 
 def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) -> None:
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     async def addigy_query_installed_apps_agent(
         agent_ids: Annotated[
             list[str], Field(description="Required list of agent (device) IDs to query.")
@@ -58,6 +62,8 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         client = client_factory()
         if client is None:
             return NO_TOKEN
+        if per_page is not None:
+            per_page = min(per_page, _MAX_PER_PAGE)
         query: dict = {"agent_ids": agent_ids}
         if names is not None:
             query["names"] = names
@@ -74,17 +80,17 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
             result = await client.post(
                 "/oa/installed-apps/agent/query", json_body=body, params=params
             )
-            return json.dumps(result, indent=2)
+            return dump_json_capped(result)
         except AddigyError as e:
-            return f"Error: {e}"
+            return e.to_envelope()
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
     async def addigy_query_installed_apps_mdm(
         agent_ids: Annotated[
             list[str], Field(description="Required list of agent (device) IDs to query.")
         ],
         limit: Annotated[
-            int, Field(description="Required max number of results to return.")
+            int, Field(description="Required max number of results to return (capped at 200).")
         ],
         skip: Annotated[
             int, Field(description="Required number of results to skip (for pagination).")
@@ -123,6 +129,7 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
         client = client_factory()
         if client is None:
             return NO_TOKEN
+        limit = min(limit, _MAX_LIMIT)
         body = {
             "agent_ids": agent_ids,
             "limit": limit,
@@ -135,6 +142,6 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
             result = await client.post(
                 "/oa/installed-apps/mdm/query", json_body=body, params=params
             )
-            return json.dumps(result, indent=2)
+            return dump_json_capped(result)
         except AddigyError as e:
-            return f"Error: {e}"
+            return e.to_envelope()
