@@ -1,7 +1,9 @@
 import json
 from collections.abc import Callable
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
@@ -11,21 +13,38 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
 
     @mcp.tool()
     async def addigy_query_policies(
-        policies: list[str] | None = None,
-        multitenancy: bool | None = None,
-        child_organizations: str | None = None,
+        policies: Annotated[
+            list[str] | None,
+            Field(
+                description=(
+                    "Optional list of policy IDs to filter by; if omitted, "
+                    "returns all policies."
+                )
+            ),
+        ] = None,
+        multitenancy: Annotated[
+            bool | None,
+            Field(
+                description="If true, include data for all descendant (child) organizations."
+            ),
+        ] = None,
+        child_organizations: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Comma-separated list of organization IDs to restrict results to "
+                    "when `multitenancy` is true."
+                )
+            ),
+        ] = None,
     ) -> str:
         """Query an organization for all policies, or filter to specific policy IDs.
 
-        API: POST /oa/policies/query
+        Use this to look up policy names/IDs — e.g. before calling
+        addigy_query_devices with a policy_id filter, or to answer "what
+        policies exist for this org".
 
-        Args:
-            policies: Optional list of policy IDs to filter by; if omitted,
-                returns all policies.
-            multitenancy: If true, include data for all descendant (child)
-                organizations.
-            child_organizations: Comma-separated list of organization IDs to
-                restrict results to when `multitenancy` is true.
+        API: POST /oa/policies/query
         """
         client = client_factory()
         if client is None:

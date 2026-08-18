@@ -4,6 +4,15 @@
 
 > **Naming note:** app.mspbots.ai has two separate Addigy integrations: **"Addigy"** (`subject_code = ADDIGY`, legacy auth via Site + Client ID + Client Secret) and **"Addigy V2"** (`subject_code = ADDIGYV2`, auth via a single API Key). This server implements **Addigy V2** only, matching the ClickUp task's scope.
 
+## What is Addigy / when would an agent use this
+
+Addigy is a macOS/iOS device management (MDM) platform MSPs use to manage their clients' Apple device fleets — enrollment, policy enforcement, monitoring, and software inventory. An agent should reach for this MCP for requests like:
+
+- "How many Macs does this customer have, and what OS versions are they on?" → `addigy_query_devices`
+- "Any monitoring alerts for this org in the last week?" → `addigy_get_alerts`
+- "What policies exist / which devices are on policy X?" → `addigy_query_policies`, then `addigy_query_devices` with `policy_id`
+- "Is Zoom / a specific app installed across this fleet?" → `addigy_query_installed_apps_agent` (agent-enrolled devices) or `addigy_query_installed_apps_mdm` (MDM-only devices)
+
 ## Overview
 
 This server implements the [Model Context Protocol](https://modelcontextprotocol.io/) (Streamable HTTP/SSE transport) and covers the **5 interfaces** that MSPbots' own Addigy V2 integration actually uses, matching the interface scope configured in MSPbots' `sys_integration`/`sys_integration_api` tables:

@@ -1,7 +1,9 @@
 import json
 from collections.abc import Callable
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
@@ -11,18 +13,38 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
 
     @mcp.tool()
     async def addigy_get_alerts(
-        page: str,
-        per_page: str,
-        status: str | None = None,
+        page: Annotated[
+            str, Field(description="Required page number (as a string, per the vendor API).")
+        ],
+        per_page: Annotated[
+            str,
+            Field(
+                description="Required results per page (as a string, per the vendor API)."
+            ),
+        ],
+        status: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Optional filter by alert status. Addigy's alert lifecycle "
+                    'documentation describes these states: "Unattended" (newly '
+                    'triggered, needs action), "Acknowledged" (temporarily muted), '
+                    '"Resolved" (permanently closed), "Closed" (closed, will '
+                    "re-arm if it recurs) — but the exact query-string casing/values "
+                    "this endpoint expects aren't independently confirmed against "
+                    "the live API, so omit this filter and check status client-side "
+                    "if a call with it returns unexpected results."
+                )
+            ),
+        ] = None,
     ) -> str:
         """Query the list of received monitoring alerts.
 
-        API: GET /monitoring/received-alerts
+        Use this for questions like "what alerts fired recently" or "any open
+        alerts for this org" — Addigy's monitoring/compliance notifications,
+        not device inventory (use addigy_query_devices for that).
 
-        Args:
-            page: Required page number (as a string, per the vendor API).
-            per_page: Required results per page (as a string, per the vendor API).
-            status: Optional filter by alert status.
+        API: GET /monitoring/received-alerts
         """
         client = client_factory()
         if client is None:

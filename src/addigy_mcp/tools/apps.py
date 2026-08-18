@@ -1,7 +1,9 @@
 import json
 from collections.abc import Callable
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
@@ -11,30 +13,47 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
 
     @mcp.tool()
     async def addigy_query_installed_apps_agent(
-        agent_ids: list[str],
-        sort_field: str,
-        sort_direction: str,
-        names: list[str] | None = None,
-        page: int | None = None,
-        per_page: int | None = None,
-        multitenancy: bool | None = None,
-        child_organizations: str | None = None,
+        agent_ids: Annotated[
+            list[str], Field(description="Required list of agent (device) IDs to query.")
+        ],
+        sort_field: Annotated[
+            str, Field(description='Required sort field ("agent_id" or "name").')
+        ],
+        sort_direction: Annotated[
+            str, Field(description='Required sort direction ("asc" or "desc").')
+        ],
+        names: Annotated[
+            list[str] | None,
+            Field(description="Optional list of application names to filter by."),
+        ] = None,
+        page: Annotated[int | None, Field(description="Page number (default 1).")] = None,
+        per_page: Annotated[
+            int | None, Field(description="Results per page (max 100, default 10).")
+        ] = None,
+        multitenancy: Annotated[
+            bool | None,
+            Field(
+                description="If true, include data for all descendant (child) organizations."
+            ),
+        ] = None,
+        child_organizations: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Comma-separated list of organization IDs to restrict results to "
+                    "when `multitenancy` is true."
+                )
+            ),
+        ] = None,
     ) -> str:
         """Query installed applications reported by the Addigy agent (macOS only).
 
-        API: POST /oa/installed-apps/agent/query
+        Use this for devices enrolled via the native Addigy agent. For
+        devices enrolled only through MDM (no Addigy agent installed), use
+        addigy_query_installed_apps_mdm instead — the two report from
+        different data sources and cover different device populations.
 
-        Args:
-            agent_ids: Required list of agent (device) IDs to query.
-            sort_field: Required sort field ("agent_id" or "name").
-            sort_direction: Required sort direction ("asc" or "desc").
-            names: Optional list of application names to filter by.
-            page: Page number (default 1).
-            per_page: Results per page (max 100, default 10).
-            multitenancy: If true, include data for all descendant (child)
-                organizations.
-            child_organizations: Comma-separated list of organization IDs to
-                restrict results to when `multitenancy` is true.
+        API: POST /oa/installed-apps/agent/query
         """
         client = client_factory()
         if client is None:
@@ -61,28 +80,45 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
 
     @mcp.tool()
     async def addigy_query_installed_apps_mdm(
-        agent_ids: list[str],
-        limit: int,
-        skip: int,
-        sort_direction: str,
-        sort_field: str,
-        multitenancy: bool | None = None,
-        child_organizations: str | None = None,
+        agent_ids: Annotated[
+            list[str], Field(description="Required list of agent (device) IDs to query.")
+        ],
+        limit: Annotated[
+            int, Field(description="Required max number of results to return.")
+        ],
+        skip: Annotated[
+            int, Field(description="Required number of results to skip (for pagination).")
+        ],
+        sort_direction: Annotated[
+            str, Field(description='Required sort direction ("asc" or "desc").')
+        ],
+        sort_field: Annotated[
+            str, Field(description='Required sort field (e.g. "last_updated").')
+        ],
+        multitenancy: Annotated[
+            bool | None,
+            Field(
+                description="If true, include data for all descendant (child) organizations."
+            ),
+        ] = None,
+        child_organizations: Annotated[
+            str | None,
+            Field(
+                description=(
+                    "Comma-separated list of organization IDs to restrict results to "
+                    "when `multitenancy` is true."
+                )
+            ),
+        ] = None,
     ) -> str:
         """Query installed applications reported via MDM.
 
-        API: POST /oa/installed-apps/mdm/query
+        Use this for devices managed only through MDM enrollment (works even
+        without the native Addigy agent installed). For devices that do have
+        the Addigy agent, addigy_query_installed_apps_agent is the source
+        Addigy itself considers authoritative.
 
-        Args:
-            agent_ids: Required list of agent (device) IDs to query.
-            limit: Required max number of results to return.
-            skip: Required number of results to skip (for pagination).
-            sort_direction: Required sort direction ("asc" or "desc").
-            sort_field: Required sort field (e.g. "last_updated").
-            multitenancy: If true, include data for all descendant (child)
-                organizations.
-            child_organizations: Comma-separated list of organization IDs to
-                restrict results to when `multitenancy` is true.
+        API: POST /oa/installed-apps/mdm/query
         """
         client = client_factory()
         if client is None:

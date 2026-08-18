@@ -1,7 +1,9 @@
 import json
 from collections.abc import Callable
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 from ..api_client import AddigyClient, AddigyError
 from ._common import NO_TOKEN
@@ -11,31 +13,54 @@ def register(mcp: FastMCP, client_factory: Callable[[], AddigyClient | None]) ->
 
     @mcp.tool()
     async def addigy_query_devices(
-        page: int | None = None,
-        per_page: int | None = None,
-        search_any: str | None = None,
-        policy_id: str | None = None,
-        filters: list[dict] | None = None,
-        desired_fact_identifiers: list[str] | None = None,
-        sort_field: str | None = None,
-        sort_direction: str | None = None,
+        page: Annotated[int | None, Field(description="Page number (default 1).")] = None,
+        per_page: Annotated[
+            int | None, Field(description="Results per page (default 10).")
+        ] = None,
+        search_any: Annotated[
+            str | None, Field(description="Free-text search across devices.")
+        ] = None,
+        policy_id: Annotated[
+            str | None, Field(description="Filter devices assigned to this policy ID.")
+        ] = None,
+        filters: Annotated[
+            list[dict] | None,
+            Field(
+                description=(
+                    "List of filter objects, each shaped like "
+                    '{"audit_field": "device_model_name", "operation": "contains", '
+                    '"type": "string", "value": ..., "range_value": ...}. Other '
+                    'confirmed examples from Addigy\'s docs: {"audit_field": "online", '
+                    '"operation": "=", "type": "boolean", "value": "true"} and '
+                    '{"audit_field": "policy_id", "operation": "contains", '
+                    '"type": "list", "value": [...]}. Addigy does not publicly '
+                    "enumerate the full audit_field/operation/type vocabulary beyond "
+                    "these documented examples — if a specific fact isn't one of "
+                    "them, prefer search_any for a free-text lookup instead of "
+                    "guessing a field name."
+                )
+            ),
+        ] = None,
+        desired_fact_identifiers: Annotated[
+            list[str] | None,
+            Field(
+                description="List of device-fact identifiers to include in the response."
+            ),
+        ] = None,
+        sort_field: Annotated[
+            str | None, Field(description='Field to sort by (e.g. "serial_number").')
+        ] = None,
+        sort_direction: Annotated[
+            str | None, Field(description='"asc" or "desc".')
+        ] = None,
     ) -> str:
         """Universal search for devices in the organization by device-fact values.
 
-        API: POST /devices
+        Use this for questions about a customer's Mac/iOS fleet — device
+        inventory, model/OS breakdowns, which devices are on a given policy,
+        or a free-text lookup by serial number/hostname.
 
-        Args:
-            page: Page number (default 1).
-            per_page: Results per page (default 10).
-            search_any: Free-text search across devices.
-            policy_id: Filter devices assigned to this policy ID.
-            filters: List of filter objects, each shaped like
-                {"audit_field": "device_model_name", "operation": "contains",
-                "type": "string", "value": ..., "range_value": ...}.
-            desired_fact_identifiers: List of device-fact identifiers to
-                include in the response.
-            sort_field: Field to sort by (e.g. "serial_number").
-            sort_direction: "asc" or "desc".
+        API: POST /devices
         """
         client = client_factory()
         if client is None:
