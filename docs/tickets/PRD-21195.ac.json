@@ -1,0 +1,108 @@
+[
+  {
+    "id": "TC-ADDIGY-001",
+    "ac": "AC1",
+    "text": "Given the Addigy V2 MCP server should be reachable through the gateway, When an admin calls GET /admin/integrations, Then the response lists an `addigy` entry whose credential_params include `api_key`",
+    "type": "manual",
+    "steps": [
+      "Authenticate as an admin against the gateway manager API (INT)",
+      "GET /admin/integrations",
+      "Find the item with name == 'addigy'"
+    ],
+    "expect": "Status 200; an item with name 'addigy' exists; its credential_params include a field keyed 'api_key'. If no such item exists, follow Open questions in PRD-21195.md: register it via scripts/vendor_deploy.py (or admin-console) before continuing.",
+    "result": "blocked",
+    "notes": "Mirrors mcp-service-gateway test/src/addigy_test.py step 2 (read-only check, does not create/delete the integration definition). DEV LEG RESULT (2026-10-29): blocked -- exercising this requires live access to the mcp-service-gateway admin/tenant API (INT), which the 2026-10-29 three-stage MCP process reserves for the review leg (mcp-track.md SS3.3/SS4: dev leg does not merge, publish to INT, or touch vendor registration; mcppub publish re-runs addigy-mcp's tests on the default branch and performs the deploy + health check that this case needs). No gateway admin credentials are available in the dev sandbox either way. Not a code defect in addigy-mcp -- no source change was made or needed (see design Tech design > Conclusion)."
+  },
+  {
+    "id": "TC-ADDIGY-002",
+    "ac": "AC2",
+    "text": "Given a tenant is connecting Addigy, When they submit a wrong Addigy API Key, Then the save is rejected with HTTP 422 and no credential is created",
+    "type": "manual",
+    "steps": [
+      "PUT /admin/tenants/<tenant_code>/credentials/addigy with {\"headers\": {\"api_key\": \"<deliberately wrong key>\"}}"
+    ],
+    "expect": "HTTP 422; response references the API Key field, not the raw submitted value; no credential is persisted for this tenant afterward.",
+    "result": "blocked",
+    "notes": "Exercises AddigyCredentialMiddleware._verify (mcp-service-gateway mcp-manager/mcp_manager/auth/credentials/addigy.py:33-64), which probes the real Addigy API before accepting the key. DEV LEG RESULT (2026-10-29): blocked -- exercising this requires live access to the mcp-service-gateway admin/tenant API (INT), which the 2026-10-29 three-stage MCP process reserves for the review leg (mcp-track.md SS3.3/SS4: dev leg does not merge, publish to INT, or touch vendor registration; mcppub publish re-runs addigy-mcp's tests on the default branch and performs the deploy + health check that this case needs). No gateway admin credentials are available in the dev sandbox either way. Not a code defect in addigy-mcp -- no source change was made or needed (see design Tech design > Conclusion)."
+  },
+  {
+    "id": "TC-ADDIGY-003",
+    "ac": "AC2",
+    "text": "Given a tenant is connecting Addigy, When they submit a valid Addigy API Key, Then the save succeeds and the tenant's credential list includes addigy",
+    "type": "manual",
+    "steps": [
+      "PUT /admin/tenants/<tenant_code>/credentials/addigy with {\"headers\": {\"api_key\": \"<valid key>\"}}",
+      "GET /admin/tenants/<tenant_code>/credentials"
+    ],
+    "expect": "PUT returns 200 with ok: true; the subsequent GET's integrations list includes 'addigy'.",
+    "result": "blocked",
+    "notes": "A known-valid Addigy V2 key is already committed in mcp-service-gateway test/src/addigy_test.py (ADDIGY_CREDENTIAL_HEADERS) -- verify it still authenticates before reuse; if rotated, source a fresh one (not a code blocker, see PRD-21195.md Risks). DEV LEG RESULT (2026-10-29): blocked -- exercising this requires live access to the mcp-service-gateway admin/tenant API (INT), which the 2026-10-29 three-stage MCP process reserves for the review leg (mcp-track.md SS3.3/SS4: dev leg does not merge, publish to INT, or touch vendor registration; mcppub publish re-runs addigy-mcp's tests on the default branch and performs the deploy + health check that this case needs). No gateway admin credentials are available in the dev sandbox either way. Not a code defect in addigy-mcp -- no source change was made or needed (see design Tech design > Conclusion)."
+  },
+  {
+    "id": "TC-ADDIGY-004",
+    "ac": "AC1",
+    "text": "Given the tenant from TC-ADDIGY-003 is connected, When they list their visible integrations and fetch Addigy's connection info, Then addigy appears in the tenant integrations list and connection info returns a gateway URL ending in /addigy/mcp with a bearer token",
+    "type": "manual",
+    "steps": [
+      "GET /api/tenants/<tenant_code>/integrations",
+      "GET /api/tenants/<tenant_code>/integrations/addigy/connection"
+    ],
+    "expect": "First call's integrations list includes 'addigy'. Second call returns 200 with mcpServers.addigy.url ending in '/addigy/mcp' and mcpServers.addigy.headers.Authorization starting with 'Bearer mcpgw_'.",
+    "result": "blocked",
+    "notes": "Precondition for TC-ADDIGY-005's real MCP call. DEV LEG RESULT (2026-10-29): blocked -- exercising this requires live access to the mcp-service-gateway admin/tenant API (INT), which the 2026-10-29 three-stage MCP process reserves for the review leg (mcp-track.md SS3.3/SS4: dev leg does not merge, publish to INT, or touch vendor registration; mcppub publish re-runs addigy-mcp's tests on the default branch and performs the deploy + health check that this case needs). No gateway admin credentials are available in the dev sandbox either way. Not a code defect in addigy-mcp -- no source change was made or needed (see design Tech design > Conclusion)."
+  },
+  {
+    "id": "TC-ADDIGY-005",
+    "ac": "AC3,AC4",
+    "text": "Given valid connection info from TC-ADDIGY-004, When an MCP client connects through the gateway and calls addigy_query_policies, Then the tools list shows all 5 Addigy tools and the call returns a real, non-error result",
+    "type": "manual",
+    "steps": [
+      "Using the gateway URL and bearer token from TC-ADDIGY-004, send tools/list",
+      "Send tools/call for addigy_query_policies with no arguments"
+    ],
+    "expect": "tools/list returns all 5 tools (addigy_query_devices, addigy_get_alerts, addigy_query_policies, addigy_query_installed_apps_agent, addigy_query_installed_apps_mdm); tools/call for addigy_query_policies returns a successful (non-error) JSON-RPC result, not an Addigy-side error.",
+    "result": "blocked",
+    "notes": "Mirrors mcp-service-gateway test/src/addigy_test.py step 7 (mcp_probe.check_tool_call). DEV LEG RESULT (2026-10-29): blocked -- exercising this requires live access to the mcp-service-gateway admin/tenant API (INT), which the 2026-10-29 three-stage MCP process reserves for the review leg (mcp-track.md SS3.3/SS4: dev leg does not merge, publish to INT, or touch vendor registration; mcppub publish re-runs addigy-mcp's tests on the default branch and performs the deploy + health check that this case needs). No gateway admin credentials are available in the dev sandbox either way. Not a code defect in addigy-mcp -- no source change was made or needed (see design Tech design > Conclusion)."
+  },
+  {
+    "id": "TC-ADDIGY-006",
+    "ac": "AC5",
+    "text": "Given the tool call from TC-ADDIGY-005 was made, When the tenant opens the connector's audit/activity log, Then the call appears (who, vendor, when) and the API key never appears in plain text in that log",
+    "type": "manual",
+    "steps": [
+      "Open Capabilities -> Addigy -> Activity/audit log for the test tenant (or call the equivalent audit-log API if the UI is not reachable in this environment)",
+      "Locate the entry for the addigy_query_policies call just made",
+      "Inspect the full entry payload for the literal API key value"
+    ],
+    "expect": "An entry for the call exists with actor/vendor/timestamp; searching the entry's raw payload for the test API key value finds no match.",
+    "result": "blocked",
+    "notes": "[需求缺失/INCOMPLETE]: not exercised by the existing test/src/addigy_test.py; the dev leg must find or add an audit-log check (UI walkthrough or API assertion). DEV LEG RESULT (2026-10-29): blocked -- exercising this requires live access to the mcp-service-gateway admin/tenant API (INT), which the 2026-10-29 three-stage MCP process reserves for the review leg (mcp-track.md SS3.3/SS4: dev leg does not merge, publish to INT, or touch vendor registration; mcppub publish re-runs addigy-mcp's tests on the default branch and performs the deploy + health check that this case needs). No gateway admin credentials are available in the dev sandbox either way. Not a code defect in addigy-mcp -- no source change was made or needed (see design Tech design > Conclusion)."
+  },
+  {
+    "id": "TC-ADDIGY-007",
+    "ac": "AC6",
+    "text": "Given the tenant from TC-ADDIGY-003 is connected, When they disconnect Addigy, Then the stored credential is removed and connection info subsequently returns 404",
+    "type": "manual",
+    "steps": [
+      "DELETE /admin/tenants/<tenant_code>/credentials/addigy",
+      "GET /admin/tenants/<tenant_code>/credentials",
+      "GET /api/tenants/<tenant_code>/integrations/addigy/connection"
+    ],
+    "expect": "DELETE returns 200 with ok: true; the credentials list no longer includes 'addigy'; the connection-info GET returns 404.",
+    "result": "blocked",
+    "notes": "Mirrors mcp-service-gateway test/src/addigy_test.py steps 8-10 (cleanup). DEV LEG RESULT (2026-10-29): blocked -- exercising this requires live access to the mcp-service-gateway admin/tenant API (INT), which the 2026-10-29 three-stage MCP process reserves for the review leg (mcp-track.md SS3.3/SS4: dev leg does not merge, publish to INT, or touch vendor registration; mcppub publish re-runs addigy-mcp's tests on the default branch and performs the deploy + health check that this case needs). No gateway admin credentials are available in the dev sandbox either way. Not a code defect in addigy-mcp -- no source change was made or needed (see design Tech design > Conclusion)."
+  },
+  {
+    "id": "TC-ADDIGY-008",
+    "ac": "AC6",
+    "text": "Given no X-Addigy-Api-Key header is supplied, When a client POSTs directly to the addigy-mcp server's /mcp endpoint, Then it returns 401 with required_headers listing X-Addigy-Api-Key",
+    "type": "auto",
+    "tests": [
+      "tests/test_middleware.py::test_missing_header_returns_401_with_required_headers_listed"
+    ],
+    "source": "design",
+    "notes": "Backend-level check (not UI gating), per the testcase skill's rule that front-end gating alone is not a valid permission/multitenancy test. Already implemented and passing in-repo (src/addigy_mcp/server.py:50-63); also doubles as this ticket's multi-tenant/security anchor case together with TC-ADDIGY-004's per-tenant credential scoping.",
+    "result": "pass",
+    "evidence": "uv run pytest -v (2026-10-29): tests/test_middleware.py::test_missing_header_returns_401_with_required_headers_listed PASSED (15/15 suite green, see docs/tickets/PRD-21195.md Self-test). Also reproduced live: started `uv run addigy-mcp` on 127.0.0.1:8901 and POSTed /mcp without X-Addigy-Api-Key -> HTTP 401 {\"error\":\"Missing credentials\",\"required_headers\":[\"X-Addigy-Api-Key\"],\"optional_headers\":[]}."
+  }
+]
